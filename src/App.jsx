@@ -1,4 +1,4 @@
-import React,{useEffect, useState} from "react";
+import React, { useEffect, useState, useRef } from "react";
 import "./App.css"
 import{
     Rating,
@@ -23,11 +23,30 @@ function App(){
     const[comentarioTemporario, setComentarioTemporario] = useState("");
     const[incluirSinopse, setIncluirSinopse] = useState(false);
 
-useEffect(() =>{
-    fetch("https://ghibliapi.vercel.app/films")
+const inicializado = useRef(false);
+
+useEffect(() => {
+  const dadosSalvos = localStorage.getItem("avaliacoes");
+  if (dadosSalvos) {
+    setAvaliacoes(JSON.parse(dadosSalvos));
+  }
+}, []);
+
+useEffect(() => {
+  if (inicializado.current) {
+    localStorage.setItem("avaliacoes", JSON.stringify(avaliacoes));
+  } else {
+    inicializado.current = true;
+  }
+}, [avaliacoes]);
+
+
+
+useEffect(() => {
+  fetch("https://ghibliapi.vercel.app/films")
     .then((res) => res.json())
     .then((dados) => setFilmes(dados));
-},[]);
+}, []);
 
 const handleAbrirModal = (filme) => {
     setFilmeSelecionado(filme);
@@ -57,13 +76,15 @@ const toggleFavorito =(id)=>{
 };
 
 const toggleAssistido = (id) => {
-    setAvaliacoes((prev) =>({
-        [id]:{
+    setAvaliacoes((prev) => ({
+        ...prev,
+        [id]: {
             ...prev[id],
-            assistido:!prev[id]?.assistido
+            assistido: !prev[id]?.assistido
         }
     }));
 };
+
 
 const mostrarFavoritos = () => setFiltrosExtras("favoritos");
 const mostrarAssistidos = () => setFiltrosExtras("assistidos");
@@ -87,11 +108,10 @@ const ordenarFilmes = (lista) =>{
     const novaLista = [...lista];
     switch(ordenacao){
         case "a-z":
-            return novaLista.sort((a,b) => 
-                a.title.localeCompare(b,title));
+            return novaLista.sort((a, b) => a.title.localeCompare(b.title));
         case "z-a":
-            return novaLista.sort((a,b) => 
-                b.title.localeCompare(a,title));
+            return novaLista.sort((a, b) => b.title.localeCompare(a.title));
+
         case "duracao-cresc":
             return novaLista.sort((a,b) => 
                 a.running_time - b.running_time);
@@ -181,9 +201,9 @@ const destacarTexto = (texto, termo) =>{
                     <p><strong>Duração:</strong>
                     {filme.running_time} min</p>
                     <p>{destacarTexto(filme.description,incluirSinopse?tituloFiltro: "")}</p>
-                    <p><strong>Diretor:</strong>
-                    {filme.director} |
-                    <strong>Produtor</strong>{filme.producer}</p>
+                    <p><strong>Diretor: </strong>
+                    {filme.director} | 
+                    <strong>Produtor: </strong>{filme.producer}</p>
                     <p><strong>Nota Ghibli</strong>{filme.rt_score}</p>
                     {avaliacao?.nota!==undefined &&(<p><strong>Minha Avaliação</strong>
                     {avaliacao.nota}/5{avaliacao.comentario&&(<><br />
