@@ -11,26 +11,26 @@ import{
 
 
 
-functionApp(){
+function App(){
     const[filmes, setFilmes] = useState([]);
     const[tituloFiltro, setTituloFiltro] = useState("");
     const[ordenacao, setOrdenacao] = useState("");
-    const[avaliacoes, setAvaliacoes] = useState("");
+    const[avaliacoes, setAvaliacoes] = useState({});
     const[filtrosExtras, setFiltrosExtras] = useState("todos");
     const[modalAberto, setModalAberto] = useState(false);
-    const[filmeSelecionado, setFilmeSelecionados] = useState(null);
+    const[filmeSelecionado, setFilmeSelecionado] = useState(null);
     const[notaTemporaria, setNotaTemporaria] = useState(0);
     const[comentarioTemporario, setComentarioTemporario] = useState("");
     const[incluirSinopse, setIncluirSinopse] = useState(false);
 
 useEffect(() =>{
     fetch("https://ghibliapi.vercel.app/films")
-    .then((res) => res.json)
+    .then((res) => res.json())
     .then((dados) => setFilmes(dados));
 },[]);
 
 const handleAbrirModal = (filme) => {
-    setFilmesSelecionados(filme);
+    setFilmeSelecionado(filme);
     setNotaTemporaria(avaliacoes[filme.id]?.nota||0);
     setComentarioTemporario(avaliacoes[filme.id]?.comentario||"");
     setModalAberto(true);
@@ -72,13 +72,13 @@ const mostrarAvaliados = () => setFiltrosExtras("notas");
 const aplicarFiltros = 
 filmes.filter((filme) => {
     const busca = tituloFiltro.toLowerCase();
-    const porTitulo = filme.title.toLowerCase().include(busca);
-    const porSinopse = incluirSinopse && filme.description.toLowerCase().include(busca);
+    const porTitulo = filme.title.toLowerCase().includes(busca);
+    const porSinopse = incluirSinopse && filme.description.toLowerCase().includes(busca);
     const avaliacao = avaliacoes[filme.id];
 
-    if(filtrosExtras === "favoritos" && !avaliacao?.favorito)return false;
-    if(filtrosExtras === "assistidos" && !avaliacao?.assistidos)return false;
-    if(filtrosExtras === "notas" && !avaliacao?.notas)return false;
+    if (filtrosExtras === "favoritos" && !avaliacao?.favorito) return false;
+    if (filtrosExtras === "assistidos" && !avaliacao?.assistido) return false;
+    if (filtrosExtras === "notas" && avaliacao?.nota == null) return false;
 
     return porTitulo||porSinopse;
 });
@@ -88,10 +88,10 @@ const ordenarFilmes = (lista) =>{
     switch(ordenacao){
         case "a-z":
             return novaLista.sort((a,b) => 
-                a.title.localeCompate(b,title));
+                a.title.localeCompare(b,title));
         case "z-a":
             return novaLista.sort((a,b) => 
-                a.title.localeCompate(a,title));
+                b.title.localeCompare(a,title));
         case "duracao-cresc":
             return novaLista.sort((a,b) => 
                 a.running_time - b.running_time);
@@ -147,7 +147,7 @@ const destacarTexto = (texto, termo) =>{
                             Incluir sinopse na busca
                     </label>
                     <div className="filtros-box"><select value={ordenacao}onChange={(e) =>
-                    setOrdenacao=(e.target.value)}>
+                    setOrdenacao(e.target.value)}>
                     <option value="">Ordenar por</option>
                     <option value="a-z">Titulo(A-Z)</option>
                     <option value="z-a">Titulo(Z-A)</option>
@@ -169,7 +169,7 @@ const destacarTexto = (texto, termo) =>{
             </div>
             <section id="filmes">
                 {ordenarFilmes(aplicarFiltros).map((filme) =>{
-                    const avaliacao = avaliacoes[filmes.id];
+                    const avaliacao = avaliacoes[filme.id];
                     return(
                         <div key={filme.id}
                         className="filme">
@@ -188,7 +188,39 @@ const destacarTexto = (texto, termo) =>{
                     {avaliacao?.nota!==undefined &&(<p><strong>Minha Avaliação</strong>
                     {avaliacao.nota}/5{avaliacao.comentario&&(<><br />
                     <em>"{avaliacao.comentario}"</em></>)}</p>)}
+                    <div style={{marginTop:"10px"}}>
+                     <Button onClick={() => toggleFavorito(filme.id)} variant="outlined" size="small">
+                  {avaliacao?.favorito ? "★ Favorito" : "☆ Favorito"}
+                </Button>
+                <Button onClick={() => toggleAssistido(filme.id)} variant="outlined" size="small" style={{ marginLeft: 5 }}>
+                  {avaliacao?.assistido ? "✔ Assistido" : "❌ Assistido"}
+                </Button>
+                <Button onClick={() => handleAbrirModal(filme)} variant="outlined" size="small" style={{ marginLeft: 5 }}>
+                  Avaliar
+                </Button>
+                    </div>
+                    </div>
+                    );
+                    })}
             </section>
+
+                    <Dialog open={modalAberto} onClose={() => setModalAberto(false)}>
+                    <DialogTitle>Avaliar:
+                        {filmeSelecionado?.title}</DialogTitle>
+                        <DialogContent>
+                            <Rating name="nota" value={notaTemporaria}
+                            onChange={(e,novaNota) => setNotaTemporaria(novaNota)} />
+                            <textarea placeholder="Comentário(opcional)"
+                            value={comentarioTemporario}
+                            onChange={(e) => setComentarioTemporario(e.target.value)}
+                            style={{width:"100%",marginTop:10}}/>
+                            </DialogContent>
+                            <DialogActions>
+                                <Button onClick={() =>
+                                    setModalAberto(false)}>Cancelar</Button>
+                                    <Button onClick={handleSalvarNota}>Salvar</Button>
+                            </DialogActions>
+                    </Dialog>
         </div>
     );
 
